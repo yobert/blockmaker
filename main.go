@@ -161,10 +161,10 @@ func run() error {
 		lastTime = newTime
 
 		// Advance animation
-		animate += t * 0.1
-		if animate > 1 {
-			animate = 0
-		}
+		animate += t * 0.1 * 10.0
+//		if animate > 1 {
+//			animate = 0
+//		}
 
 		// Print the FPS
 		tt += t
@@ -236,6 +236,9 @@ func run() error {
 
 		// Move camera position
 		move_speed := t * 5
+		if keys[glfw.KeyRightShift] {
+			move_speed *= 10.0
+		}
 		dir := cam.RotAxis.M33().MultV3(move).Scale(move_speed)
 		cam.Position = cam.Position.Add(dir)
 	}
