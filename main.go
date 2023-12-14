@@ -78,6 +78,8 @@ func run() error {
 
 	p := MakePuzzle()
 
+	animate := 0.0
+
 	for !window.ShouldClose() {
 		glfw.PollEvents()
 
@@ -105,12 +107,30 @@ func run() error {
 		gl.ClearColor(0, 0, 0, 1)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		gl.Enable(gl.DEPTH_TEST)
-		gl.DepthFunc(gl.LESS)
-
 		//gl.Enable(gl.CULL_FACE)
 
 		//gl.Enable(gl.LIGHTING)
+
+		gl.Disable(gl.DEPTH_TEST)
+		gl.Disable(gl.CULL_FACE)
+
+		// Draw axis
+		gl.Begin(gl.LINES)
+		gl.Color3f(0, 0, 0)
+		gl.Vertex3f(0, 0, 0)
+		gl.Color3f(1, 0, 0)
+		gl.Vertex3f(10, 0, 0)
+
+		gl.Color3f(0, 0, 0)
+		gl.Vertex3f(0, 0, 0)
+		gl.Color3f(0, 1, 0)
+		gl.Vertex3f(0, 10, 0)
+
+		gl.Color3f(0, 0, 0)
+		gl.Vertex3f(0, 0, 0)
+		gl.Color3f(0, 0, 1)
+		gl.Vertex3f(0, 0, 10)
+		gl.End()
 
 		rand.Seed(666)
 		gl.Begin(gl.POINTS)
@@ -123,69 +143,30 @@ func run() error {
 		}
 		gl.End()
 
-		draw_puzzle(p)
+		gl.Enable(gl.DEPTH_TEST)
+		gl.DepthFunc(gl.LESS)
+
+		draw_puzzle(p, animate)
 
 		if ge := gl.GetError(); ge != gl.NO_ERROR {
 			fmt.Println(ge)
 		}
 
-		move_speed := 0.05
-		move := vector.V3{}
-
-		if keys[glfw.KeyA] {
-			move.Y = 1
-		}
-		if keys[glfw.KeyZ] {
-			move.Y = -1
-		}
-		if keys[glfw.KeyS] {
-			move.X = -1
-		}
-		if keys[glfw.KeyF] {
-			move.X = 1
-		}
-		if keys[glfw.KeyE] {
-			move.Z = -1
-		}
-		if keys[glfw.KeyD] {
-			move.Z = 1
-		}
-
-		look_speed := 0.02
-
-		e := cam.RotAxis
-		e.Z = 0
-
-		if keys[glfw.KeyUp] {
-			e.X += (vector.Radian)(look_speed)
-		}
-		if keys[glfw.KeyDown] {
-			e.X -= (vector.Radian)(look_speed)
-		}
-		if keys[glfw.KeyLeft] {
-			e.Y += (vector.Radian)(look_speed)
-		}
-		if keys[glfw.KeyRight] {
-			e.Y -= (vector.Radian)(look_speed)
-		}
-		if e.X > math.Pi/2 {
-			e.X = math.Pi / 2
-		}
-		if e.X < -math.Pi/2 {
-			e.X = -math.Pi / 2
-		}
-
-		cam.RotAxis = e
-
-		dir := cam.RotAxis.M33().MultV3(move).Scale(move_speed)
-		cam.Position = cam.Position.Add(dir)
-
 		window.SwapBuffers()
 
+		// Calculate how long it's been since the last frame. We'll use that in an FPS printout on the console,
+		// as well as a multiplier for camera movement speed.
 		newTime := glfw.GetTime()
 		t := newTime - lastTime
 		lastTime = newTime
 
+		// Advance animation
+		animate += t * 0.1
+		if animate > 1 {
+			animate = 0
+		}
+
+		// Print the FPS
 		tt += t
 		ti++
 		if tt > 1 {
@@ -207,32 +188,104 @@ func run() error {
 			tt = 0
 			ti = 0
 		}
+
+		// Chose a movement vector
+		move := vector.V3{}
+		if keys[glfw.KeyA] {
+			move.Y = 1
+		}
+		if keys[glfw.KeyZ] {
+			move.Y = -1
+		}
+		if keys[glfw.KeyS] {
+			move.X = -1
+		}
+		if keys[glfw.KeyF] {
+			move.X = 1
+		}
+		if keys[glfw.KeyE] {
+			move.Z = -1
+		}
+		if keys[glfw.KeyD] {
+			move.Z = 1
+		}
+
+		// Look around?
+		look_speed := t * 2
+		e := cam.RotAxis
+		e.Z = 0
+		if keys[glfw.KeyUp] {
+			e.X += (vector.Radian)(look_speed)
+		}
+		if keys[glfw.KeyDown] {
+			e.X -= (vector.Radian)(look_speed)
+		}
+		if keys[glfw.KeyLeft] {
+			e.Y += (vector.Radian)(look_speed)
+		}
+		if keys[glfw.KeyRight] {
+			e.Y -= (vector.Radian)(look_speed)
+		}
+		if e.X > math.Pi/2 {
+			e.X = math.Pi / 2
+		}
+		if e.X < -math.Pi/2 {
+			e.X = -math.Pi / 2
+		}
+		cam.RotAxis = e
+
+		// Move camera position
+		move_speed := t * 5
+		dir := cam.RotAxis.M33().MultV3(move).Scale(move_speed)
+		cam.Position = cam.Position.Add(dir)
 	}
 	fmt.Println()
 
 	return nil
 }
 
-func draw_puzzle(p Puzzle) {
-	dir := false
+func draw_puzzle(p Puzzle, animate float64) {
 	pos := vector.V3{}
+	rot := vector.IdentityQ()
+
 	for _, segment := range p.Segments {
+		if segment.Kind == Corner {
+			rot = rot.Mult(vector.AxisAngleQ(vector.V3{0, 0, 1}, vector.Degree(90).Radian()))
+
+			anglefrom := 90.0 * float64(segment.LastRotate)
+			angleto := 90.0 * float64(segment.Rotate)
+
+			angle := ((angleto - anglefrom) * animate) + anglefrom
+
+			rot = rot.Mult(vector.AxisAngleQ(vector.V3{1, 0, 0}, vector.Degree(angle).Radian()))
+		}
+
 		b := Box{
 			Blue:     segment.Blue,
 			Origin:   pos,
 			HalfSize: vector.V3{0.5, 0.5, 0.5},
 		}
+
+		gl.PushMatrix()
+		gl.Translated(
+			b.Origin.X,
+			b.Origin.Y,
+			b.Origin.Z)
+
+		rotmat := rot.M33().M44()
+		gl.MultMatrixd(&rotmat[0])
 		b.Draw()
+		gl.PopMatrix()
 
-		if segment.Kind == Corner {
-			dir = !dir
-		}
+		dir := vector.V3{0, 1, 0}
 
-		v := vector.V3{0, 1, 0}
-		if dir {
-			v = vector.V3{1, 0, 0}
-		}
+		dir = rot.M33().MultV3(dir)
 
-		pos = pos.Add(v)
+		//		v := vector.V3{0, 1, 0}
+		//		if dir {
+		//			v = vector.V3{1, 0, 0}
+		//		}
+
+		pos = pos.Add(dir)
 	}
 }

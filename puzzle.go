@@ -5,8 +5,12 @@ type Puzzle struct {
 }
 
 type Segment struct {
-	Blue bool
-	Kind Kind
+	Blue   bool
+	Kind   Kind
+	Rotate int
+
+	// For animation
+	LastRotate int
 }
 
 type Kind int
@@ -16,6 +20,16 @@ const (
 	Corner
 	Straight
 )
+
+func clamp(i int) int {
+	if i == -1 {
+		return 3
+	}
+	if i == 4 {
+		return 0
+	}
+	return i
+}
 
 func MakePuzzle() Puzzle {
 	p := Puzzle{}
@@ -35,8 +49,13 @@ func MakePuzzle() Puzzle {
 		16, 17, 18, 20, 22,
 		24,
 	}
+
+	rotate := 1
 	for _, v := range corners {
 		p.Segments[v].Kind = Corner
+		p.Segments[v].Rotate = rotate
+		p.Segments[v].LastRotate = clamp(rotate - 1)
+		rotate = clamp(rotate + 1)
 	}
 
 	return p

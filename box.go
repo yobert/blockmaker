@@ -12,12 +12,6 @@ type Box struct {
 }
 
 func (box Box) Draw() {
-	gl.PushMatrix()
-	gl.Translated(
-		box.Origin.X,
-		box.Origin.Y,
-		box.Origin.Z)
-
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 	gl.Begin(gl.QUADS)
 
@@ -80,5 +74,4 @@ func (box Box) Draw() {
 	gl.Vertex3d(-box.HalfSize.X, box.HalfSize.Y, box.HalfSize.Z)
 
 	gl.End()
-	gl.PopMatrix()
 }
