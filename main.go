@@ -71,6 +71,10 @@ func run() error {
 
 	glfw.SwapInterval(1)
 
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
+	gl.ClearColor(0, 0, 0, 1)
+
 	lastTime := glfw.GetTime()
 	tt := 0.0
 	ti := 0
@@ -85,73 +89,14 @@ func run() error {
 
 		window.MakeContextCurrent()
 
-		wx, wy := window.GetSize()
+		setup_camera(window, cam)
 
-		cam.Width = float64(wx)
-		cam.Height = float64(wy)
-		cam.YFov = 70
-		cam.Near = 0.01
-		cam.Far = 100
-
-		cam.SetupViewProjection()
-		cam.SetupModelView()
-
-		gl.Viewport(0, 0, int32(wx), int32(wy))
-
-		gl.MatrixMode(gl.PROJECTION)
-		gl.LoadMatrixd(&cam.Projection[0])
-
-		gl.MatrixMode(gl.MODELVIEW)
-		gl.LoadMatrixd(&cam.ModelView[0])
-
-		gl.ClearColor(0, 0, 0, 1)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		//gl.Enable(gl.CULL_FACE)
-
-		//gl.Enable(gl.LIGHTING)
-
-		gl.Disable(gl.DEPTH_TEST)
-		gl.Disable(gl.CULL_FACE)
-
-		// Draw axis
-		gl.Begin(gl.LINES)
-		gl.Color3f(0, 0, 0)
-		gl.Vertex3f(0, 0, 0)
-		gl.Color3f(1, 0, 0)
-		gl.Vertex3f(10, 0, 0)
-
-		gl.Color3f(0, 0, 0)
-		gl.Vertex3f(0, 0, 0)
-		gl.Color3f(0, 1, 0)
-		gl.Vertex3f(0, 10, 0)
-
-		gl.Color3f(0, 0, 0)
-		gl.Vertex3f(0, 0, 0)
-		gl.Color3f(0, 0, 1)
-		gl.Vertex3f(0, 0, 10)
-		gl.End()
-
-		rand.Seed(666)
-		gl.Begin(gl.POINTS)
-		for i := 0; i < 1000; i++ {
-			gl.Color3f(1, 1, 1)
-			x := r(-10, 10)
-			y := r(-10, 10)
-			z := r(-10, 10)
-			gl.Vertex3d(x, y, z)
-		}
-		gl.End()
-
-		gl.Enable(gl.DEPTH_TEST)
-		gl.DepthFunc(gl.LESS)
-
+		draw_debug()
 		draw_puzzle(p, animate)
 
-		if ge := gl.GetError(); ge != gl.NO_ERROR {
-			fmt.Println(ge)
-		}
-
+		print_gl_errors()
 		window.SwapBuffers()
 
 		// Calculate how long it's been since the last frame. We'll use that in an FPS printout on the console,
@@ -162,9 +107,9 @@ func run() error {
 
 		// Advance animation
 		animate += t * 0.1 * 10.0
-//		if animate > 1 {
-//			animate = 0
-//		}
+		//		if animate > 1 {
+		//			animate = 0
+		//		}
 
 		// Print the FPS
 		tt += t
@@ -247,48 +192,64 @@ func run() error {
 	return nil
 }
 
-func draw_puzzle(p Puzzle, animate float64) {
-	pos := vector.V3{}
-	rot := vector.IdentityQ()
+func setup_camera(window *glfw.Window, cam *vector.Camera) {
+	wx, wy := window.GetSize()
 
-	for _, segment := range p.Segments {
-		if segment.Kind == Corner {
-			rot = rot.Mult(vector.AxisAngleQ(vector.V3{0, 0, 1}, vector.Degree(90).Radian()))
+	cam.Width = float64(wx)
+	cam.Height = float64(wy)
+	cam.YFov = 70
+	cam.Near = 0.01
+	cam.Far = 100
 
-			anglefrom := 90.0 * float64(segment.LastRotate)
-			angleto := 90.0 * float64(segment.Rotate)
+	cam.SetupViewProjection()
+	cam.SetupModelView()
 
-			angle := ((angleto - anglefrom) * animate) + anglefrom
+	gl.Viewport(0, 0, int32(wx), int32(wy))
 
-			rot = rot.Mult(vector.AxisAngleQ(vector.V3{1, 0, 0}, vector.Degree(angle).Radian()))
-		}
+	gl.MatrixMode(gl.PROJECTION)
+	gl.LoadMatrixd(&cam.Projection[0])
 
-		b := Box{
-			Blue:     segment.Blue,
-			Origin:   pos,
-			HalfSize: vector.V3{0.5, 0.5, 0.5},
-		}
+	gl.MatrixMode(gl.MODELVIEW)
+	gl.LoadMatrixd(&cam.ModelView[0])
+}
 
-		gl.PushMatrix()
-		gl.Translated(
-			b.Origin.X,
-			b.Origin.Y,
-			b.Origin.Z)
+func draw_debug() {
+	//gl.Enable(gl.CULL_FACE)
+	//gl.Enable(gl.LIGHTING)
+	gl.Disable(gl.CULL_FACE)
 
-		rotmat := rot.M33().M44()
-		gl.MultMatrixd(&rotmat[0])
-		b.Draw()
-		gl.PopMatrix()
+	// Draw axis
+	gl.Begin(gl.LINES)
+	gl.Color3f(0, 0, 0)
+	gl.Vertex3f(0, 0, 0)
+	gl.Color3f(1, 0, 0)
+	gl.Vertex3f(10, 0, 0)
 
-		dir := vector.V3{0, 1, 0}
+	gl.Color3f(0, 0, 0)
+	gl.Vertex3f(0, 0, 0)
+	gl.Color3f(0, 1, 0)
+	gl.Vertex3f(0, 10, 0)
 
-		dir = rot.M33().MultV3(dir)
+	gl.Color3f(0, 0, 0)
+	gl.Vertex3f(0, 0, 0)
+	gl.Color3f(0, 0, 1)
+	gl.Vertex3f(0, 0, 10)
+	gl.End()
 
-		//		v := vector.V3{0, 1, 0}
-		//		if dir {
-		//			v = vector.V3{1, 0, 0}
-		//		}
+	rand.Seed(666)
+	gl.Begin(gl.POINTS)
+	for i := 0; i < 1000; i++ {
+		gl.Color3f(1, 1, 1)
+		x := r(-10, 10)
+		y := r(-10, 10)
+		z := r(-10, 10)
+		gl.Vertex3d(x, y, z)
+	}
+	gl.End()
+}
 
-		pos = pos.Add(dir)
+func print_gl_errors() {
+	if ge := gl.GetError(); ge != gl.NO_ERROR {
+		fmt.Println(ge)
 	}
 }
