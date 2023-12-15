@@ -125,6 +125,22 @@ func run() error {
 		return fmt.Errorf("Awwww shucks! No solution.")
 	}
 
+	// Print findings
+	fmt.Print("max:")
+	for _, s := range max_p.Segments {
+		if s.Kind == Corner {
+			fmt.Printf(" %d", s.Rotate)
+		}
+	}
+	fmt.Println()
+	fmt.Print("min:")
+	for _, s := range min_p.Segments {
+		if s.Kind == Corner {
+			fmt.Printf(" %d", s.Rotate)
+		}
+	}
+	fmt.Println()
+
 	// Animate from the maximum shape to the minimum.
 	for i := range min_p.Segments {
 		min_p.Segments[i].LastRotate = max_p.Segments[i].Rotate

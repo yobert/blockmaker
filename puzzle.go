@@ -83,16 +83,18 @@ func (p *Puzzle) Advance() *Puzzle {
 	}
 
 	v := np.Step
-	for i := range np.Segments {
-		np.Segments[i].Rotate = v % 4
-		v = v >> 2
+	for i, s := range np.Segments {
+		if s.Kind == Corner {
+			np.Segments[i].Rotate = v % 4
+			v = v >> 2
+		}
 	}
 
 	return &np
 }
 
 const (
-	m = 10
+	m = 20
 )
 
 var (
