@@ -146,20 +146,20 @@ func (p *Puzzle) Analyze() (sx, sy, sz int, valid bool) {
 		if ix < min_sx {
 			min_sx = ix
 		}
-		if ix > max_sx {
-			max_sx = ix
+		if ix+1 > max_sx {
+			max_sx = ix + 1
 		}
 		if iy < min_sy {
 			min_sy = iy
 		}
-		if iy > max_sy {
-			max_sy = iy
+		if iy+1 > max_sy {
+			max_sy = iy + 1
 		}
 		if iz < min_sz {
 			min_sz = iz
 		}
-		if iz > max_sz {
-			max_sz = iz
+		if iz+1 > max_sz {
+			max_sz = iz + 1
 		}
 
 		if segment.Kind == Corner {
@@ -185,6 +185,8 @@ func draw_puzzle(p *Puzzle, animate float64) {
 
 	pos := vector.V3{}
 	rot := vector.IdentityQ()
+
+	cornercount := 0
 
 	for _, segment := range p.Segments {
 		if segment.Kind == Corner {
@@ -230,5 +232,13 @@ func draw_puzzle(p *Puzzle, animate float64) {
 		//		}
 
 		pos = pos.Add(dir)
+
+		if segment.Kind == Corner {
+			if cornercount > spacebar {
+				break
+			}
+			cornercount++
+		}
+
 	}
 }

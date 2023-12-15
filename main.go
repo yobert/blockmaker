@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	cam  *vector.Camera
-	keys [1024]bool
+	cam      *vector.Camera
+	keys     [1024]bool
+	spacebar int
 )
 
 func init() {
@@ -37,6 +38,12 @@ func window_key(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, 
 
 	if action == glfw.Press {
 		keys[key] = true
+		if key == glfw.KeySpace {
+			spacebar++
+		}
+		if key == glfw.KeyBackspace {
+			spacebar--
+		}
 	} else if action == glfw.Release {
 		keys[key] = false
 	}
@@ -92,34 +99,59 @@ func run() error {
 		min_p *Puzzle
 	)
 
-	bar := progress.NewBar(p.MaxStep, "processing...")
-
-	for p != nil {
-		sx, sy, sz, valid := p.Analyze()
-		if valid {
-			sany := 0
-			if sx > sany {
-				sany = sx
-			}
-			if sy > sany {
-				sany = sy
-			}
-			if sz > sany {
-				sany = sz
-			}
-			if max_p == nil || sany > max_s {
-				max_p = p
-			}
-
-			if sx == 3 && sy == 3 && sz == 3 {
-				min_p = p
-				fmt.Println("found a solution!")
-			}
+	found_min := *p
+	found_min_rots := []int{0, 0, 1, 1, 0, 3, 0, 1, 3, 0, 1, 2, 0, 0, 1, 0}
+	for i, s := range found_min.Segments {
+		if s.Kind == Corner {
+			found_min.Segments[i].Rotate = found_min_rots[0]
+			found_min_rots = found_min_rots[1:]
 		}
-		p = p.Advance()
-		bar.Next()
 	}
-	bar.Done()
+	min_p = &found_min
+
+	found_max := *p
+	found_max_rots := []int{0, 1, 1, 0, 2, 0, 1, 1, 0, 2, 0, 1, 0, 0, 1, 0}
+	for i, s := range found_max.Segments {
+		if s.Kind == Corner {
+			found_max.Segments[i].Rotate = found_max_rots[0]
+			found_max_rots = found_max_rots[1:]
+		}
+	}
+	max_p = &found_max
+	_ = progress.NewBar
+	_ = max_s
+
+	/*
+		bar := progress.NewBar(p.MaxStep, "processing...")
+
+		for p != nil {
+			sx, sy, sz, valid := p.Analyze()
+			if valid {
+				sany := 0
+				if sx > sany {
+					sany = sx
+				}
+				if sy > sany {
+					sany = sy
+				}
+				if sz > sany {
+					sany = sz
+				}
+				if max_p == nil || sany > max_s {
+					max_p = p
+					max_s = sany
+				}
+
+				if sx == 3 && sy == 3 && sz == 3 {
+					min_p = p
+					fmt.Println("found a solution!")
+					break
+				}
+			}
+			p = p.Advance()
+			bar.Next()
+		}
+		bar.Done()*/
 
 	if min_p == nil || max_p == nil {
 		return fmt.Errorf("Awwww shucks! No solution.")
@@ -142,6 +174,7 @@ func run() error {
 	fmt.Println()
 
 	// Animate from the maximum shape to the minimum.
+	p = min_p
 	for i := range min_p.Segments {
 		min_p.Segments[i].LastRotate = max_p.Segments[i].Rotate
 	}
@@ -176,6 +209,7 @@ func run() error {
 		if animate > 1 {
 			animate = 0
 		}
+		animate = 1
 
 		// Print the FPS
 		tt += t
