@@ -28,6 +28,7 @@ func (box Box) Draw() {
 	// -Z
 	v := 0.1
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(0, 0, -1)
 	gl.Vertex3d((-box.HalfSize.X), (-box.HalfSize.Y), (-box.HalfSize.Z))
 	gl.Vertex3d((-box.HalfSize.X), (box.HalfSize.Y), (-box.HalfSize.Z))
 	gl.Vertex3d((box.HalfSize.X), (box.HalfSize.Y), (-box.HalfSize.Z))
@@ -36,6 +37,7 @@ func (box Box) Draw() {
 	// -X
 	v = 0.2
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(-1, 0, 0)
 	gl.Vertex3d((-box.HalfSize.X), (-box.HalfSize.Y), (-box.HalfSize.Z))
 	gl.Vertex3d((-box.HalfSize.X), (-box.HalfSize.Y), (box.HalfSize.Z))
 	gl.Vertex3d((-box.HalfSize.X), (box.HalfSize.Y), (box.HalfSize.Z))
@@ -44,6 +46,7 @@ func (box Box) Draw() {
 	// -Y
 	v = 0.3
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(0, -1, 0)
 	gl.Vertex3d((-box.HalfSize.X), (-box.HalfSize.Y), (-box.HalfSize.Z))
 	gl.Vertex3d((box.HalfSize.X), (-box.HalfSize.Y), (-box.HalfSize.Z))
 	gl.Vertex3d((box.HalfSize.X), (-box.HalfSize.Y), (box.HalfSize.Z))
@@ -52,6 +55,7 @@ func (box Box) Draw() {
 	// +Z
 	v = 0.4
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(0, 0, 1)
 	gl.Vertex3d((box.HalfSize.X), (box.HalfSize.Y), (box.HalfSize.Z))
 	gl.Vertex3d((-box.HalfSize.X), (box.HalfSize.Y), (box.HalfSize.Z))
 	gl.Vertex3d((-box.HalfSize.X), (-box.HalfSize.Y), (box.HalfSize.Z))
@@ -60,6 +64,7 @@ func (box Box) Draw() {
 	// +X
 	v = 0.5
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(1, 0, 0)
 	gl.Vertex3d((box.HalfSize.X), (box.HalfSize.Y), (box.HalfSize.Z))
 	gl.Vertex3d((box.HalfSize.X), (-box.HalfSize.Y), (box.HalfSize.Z))
 	gl.Vertex3d((box.HalfSize.X), (-box.HalfSize.Y), (-box.HalfSize.Z))
@@ -68,6 +73,7 @@ func (box Box) Draw() {
 	// +Y
 	v = 0.6
 	gl.Color3d(r*v, g*v, b*v)
+	gl.Normal3d(0, 1, 0)
 	gl.Vertex3d(box.HalfSize.X, box.HalfSize.Y, box.HalfSize.Z)
 	gl.Vertex3d(box.HalfSize.X, box.HalfSize.Y, -box.HalfSize.Z)
 	gl.Vertex3d(-box.HalfSize.X, box.HalfSize.Y, -box.HalfSize.Z)

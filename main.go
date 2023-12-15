@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/yobert/progress"
 	"github.com/yobert/vector"
 )
 
@@ -82,6 +83,53 @@ func run() error {
 
 	p := MakePuzzle()
 
+	// Solve the puzzle: Find the start shape (widest possible) and the solution shape (slimmest possible)
+
+	var (
+		max_p *Puzzle
+		max_s int
+
+		min_p *Puzzle
+	)
+
+	bar := progress.NewBar(p.MaxStep, "processing...")
+
+	for p != nil {
+		sx, sy, sz, valid := p.Analyze()
+		if valid {
+			sany := 0
+			if sx > sany {
+				sany = sx
+			}
+			if sy > sany {
+				sany = sy
+			}
+			if sz > sany {
+				sany = sz
+			}
+			if max_p == nil || sany > max_s {
+				max_p = p
+			}
+
+			if sx == 3 && sy == 3 && sz == 3 {
+				min_p = p
+				fmt.Println("found a solution!")
+			}
+		}
+		p = p.Advance()
+		bar.Next()
+	}
+	bar.Done()
+
+	if min_p == nil || max_p == nil {
+		return fmt.Errorf("Awwww shucks! No solution.")
+	}
+
+	// Animate from the maximum shape to the minimum.
+	for i := range min_p.Segments {
+		min_p.Segments[i].LastRotate = max_p.Segments[i].Rotate
+	}
+
 	animate := 0.0
 
 	for !window.ShouldClose() {
@@ -94,6 +142,8 @@ func run() error {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		draw_debug()
+
+		debug_lighting()
 		draw_puzzle(p, animate)
 
 		print_gl_errors()
@@ -106,10 +156,10 @@ func run() error {
 		lastTime = newTime
 
 		// Advance animation
-		animate += t * 0.1 * 10.0
-		//		if animate > 1 {
-		//			animate = 0
-		//		}
+		animate += t * 0.1 * 0.5
+		if animate > 1 {
+			animate = 0
+		}
 
 		// Print the FPS
 		tt += t
@@ -215,7 +265,7 @@ func setup_camera(window *glfw.Window, cam *vector.Camera) {
 
 func draw_debug() {
 	//gl.Enable(gl.CULL_FACE)
-	//gl.Enable(gl.LIGHTING)
+	gl.Disable(gl.LIGHTING)
 	gl.Disable(gl.CULL_FACE)
 
 	// Draw axis
@@ -246,6 +296,48 @@ func draw_debug() {
 		gl.Vertex3d(x, y, z)
 	}
 	gl.End()
+}
+
+func debug_lighting() {
+	gl.Enable(gl.LIGHTING)
+	gl.Enable(gl.LIGHT0)
+
+	pos := []float32{10, 20, 30, 0}
+	amb := []float32{0.5, 0.5, 0.5, 1}
+	dif := []float32{0.7, 0.7, 0.7, 1}
+	spe := []float32{1, 1, 1, 1}
+	g_amb := []float32{0, 0, 0, 1}
+
+	gl.Lightfv(gl.LIGHT0, gl.POSITION, &pos[0])
+	gl.Lightfv(gl.LIGHT0, gl.AMBIENT, &amb[0])
+	gl.Lightfv(gl.LIGHT0, gl.DIFFUSE, &dif[0])
+	gl.Lightfv(gl.LIGHT0, gl.SPECULAR, &spe[0])
+
+	gl.LightModelfv(gl.LIGHT_MODEL_AMBIENT, &g_amb[0])
+}
+func debug_material() {
+	gl.Disable(gl.TEXTURE_2D)
+
+	amb := []float32{0.1, 0.1, 0.1, 1}
+	dif := []float32{0.4, 0.4, 0.4, 1}
+	spe := []float32{0.5, 0.5, 0.5, 1}
+
+	gl.Materialf(gl.FRONT, gl.SHININESS, 120) // specular exponent, range of 0..128
+	gl.Materialfv(gl.FRONT, gl.AMBIENT, &amb[0])
+	gl.Materialfv(gl.FRONT, gl.DIFFUSE, &dif[0])
+	gl.Materialfv(gl.FRONT, gl.SPECULAR, &spe[0])
+}
+func debug_material_blue() {
+	gl.Disable(gl.TEXTURE_2D)
+
+	amb := []float32{0.0, 0.0, 0.1, 1}
+	dif := []float32{0.0, 0.0, 0.4, 1}
+	spe := []float32{0.5, 0.5, 0.5, 1}
+
+	gl.Materialf(gl.FRONT, gl.SHININESS, 120) // specular exponent, range of 0..128
+	gl.Materialfv(gl.FRONT, gl.AMBIENT, &amb[0])
+	gl.Materialfv(gl.FRONT, gl.DIFFUSE, &dif[0])
+	gl.Materialfv(gl.FRONT, gl.SPECULAR, &spe[0])
 }
 
 func print_gl_errors() {
